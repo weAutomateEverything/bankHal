@@ -11,7 +11,7 @@ import (
 	"net"
 	"math/rand"
 	"strconv"
-	bankldap2 "github.com/weAutomateEverything/bankHal/bankldapServicepService/bankldap"
+	bankldap2 "github.com/weAutomateEverything/bankHal/bankldapService/bankldap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
