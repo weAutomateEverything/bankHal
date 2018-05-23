@@ -23,7 +23,6 @@ script:
 
 after_success:
   - bin/docker_push.sh
-  - bin/ecs-deploy.sh
 
 after_script:
   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT -t gocov
