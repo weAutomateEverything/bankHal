@@ -5,10 +5,10 @@ if [ -z "$TRAVIS_PULL_REQUEST" ] || [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
   if [ "$TRAVIS_BRANCH" == "master" ]; then
 
     # Build and push
-    docker build -t $IMAGE_NAME:1.$TRAVIS_JOB_NUMBER .
-    docker tag $IMAGE_NAME:1.$TRAVIS_JOB_NUMBER "$IMAGE_NAME:latest"
+    docker build -t $IMAGE_NAME:$TRAVIS_JOB_NUMBER .
+    docker tag $IMAGE_NAME:$TRAVIS_JOB_NUMBER "$IMAGE_NAME:latest"
     docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-    docker push "$IMAGE_NAME:1.$TRAVIS_JOB_NUMBER"
+    docker push "$IMAGE_NAME:$TRAVIS_JOB_NUMBER"
     docker push "$IMAGE_NAME:latest"
   else
     echo "Skipping deploy because branch is not 'master'"
