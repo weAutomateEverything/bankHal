@@ -52,7 +52,6 @@ func main() {
 	db := database.NewConnection()
 
 	//Stores
-	alertStore := alert.NewStore(db)
 	telegramStore := telegram.NewMongoStore(db)
 	appdynamicsStore := appdynamics.NewMongoStore(db)
 	chefStore := chef.NewMongoStore(db)
@@ -61,6 +60,7 @@ func main() {
 	seleniumStore := seleniumTests.NewMongoStore(db)
 	httpStore := httpSmoke.NewMongoStore(db)
 	machingLearningStore := machineLearning.NewMongoStore(db)
+	firstcallStore := bankCallout.NewMongoStore(db)
 
 	//A datastore to store the auth info for our bank - not required if you dont want auth
 	bankLdapStore := bankldapService.NewMongoStore(db)
@@ -97,7 +97,7 @@ func main() {
 			Help:      "Total duration of requests in microseconds.",
 		}, fieldKeys), telegramService)
 
-	alertService := alert.NewService(telegramService, alertStore)
+	alertService := alert.NewService(telegramService,telegramStore)
 	alertService = alert.NewLoggingService(log.With(logger, "component", "alert"), alertService)
 	alertService = alert.NewInstrumentService(kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{
 		Namespace: "api",
@@ -132,16 +132,6 @@ func main() {
 			Name:      "request_latency_microseconds",
 			Help:      "Total duration of requests in microseconds.",
 		}, fieldKeys), jiraService)
-
-	defer func() {
-		if r := recover(); r != nil {
-			err, ok := r.(error)
-			if ok {
-				jiraService.CreateJira(context.TODO(), fmt.Sprintf("HAL Panic - %v", err.Error()), string(debug.Stack()), getTechnicalUser())
-			}
-			panic(r)
-		}
-	}()
 
 	analyticsService := analytics.NewService(alertService, chefStore)
 	analyticsService = analytics.NewLoggingService(log.With(logger, "component", "chef_audir"), analyticsService)
@@ -224,7 +214,7 @@ func main() {
 			Help:      "Total duration of requests in microseconds.",
 		}, fieldKeys), aws)
 
-	firstcallService := bankCallout.NewService()
+	firstcallService := bankCallout.NewService(firstcallStore)
 
 	calloutService := callout.NewService(alertService, firstcallService, snmpService, jiraService, aws)
 	calloutService = callout.NewLoggingService(log.With(logger, "component", "callout"), calloutService)
@@ -321,27 +311,28 @@ func main() {
 	httpService := httpSmoke.NewService(alertService, httpStore, calloutService)
 
 	//Telegram Commands
-	telegramService.RegisterCommand(alert.NewSetGroupCommand(telegramService, alertStore))
-	telegramService.RegisterCommand(alert.NewSetNonTechnicalGroupCommand(telegramService, alertStore))
-	telegramService.RegisterCommand(alert.NewSetHeartbeatGroupCommand(telegramService, alertStore))
 	telegramService.RegisterCommand(telegram.NewHelpCommand(telegramService))
-	telegramService.RegisterCommand(firstCall.NewWhosOnFirstCallCommand(alertService, telegramService, firstcallService))
+	telegramService.RegisterCommand(firstCall.NewWhosOnFirstCallCommand(alertService, telegramService, firstcallService,telegramStore))
+	telegramService.RegisterCommandLet(telegram.NewTelegramAuthApprovalCommand(telegramService, telegramStore))
+
+	//Bank Commands
 	telegramService.RegisterCommand(bankSkynet.NewRebuildCHefNodeCommand(telegramStore, chefStore, telegramService,
 		alertService))
-	telegramService.RegisterCommand(bankSkynet.NewRebuildNodeCommand(alertService, skynetService))
+	telegramService.RegisterCommand(bankSkynet.NewRebuildNodeCommand(alertService, skynetService,telegramStore,telegramService))
 	telegramService.RegisterCommand(httpSmoke.NewQuietHttpAlertCommand(telegramService, httpService))
 	telegramService.RegisterCommand(bankldapService.NewRegisterCommand(telegramService, bankLdapStore))
 	telegramService.RegisterCommand(bankldapService.NewTokenCommand(telegramService, bankLdapStore))
 
 	telegramService.RegisterCommandLet(bankSkynet.NewRebuildChefNodeEnvironmentReplyCommandlet(telegramService,
 		skynetService, chefService))
-	telegramService.RegisterCommandLet(bankSkynet.NewRebuildChefNodeExecute(skynetService, alertService))
+	telegramService.RegisterCommandLet(bankSkynet.NewRebuildChefNodeExecute(skynetService, alertService,telegramStore,telegramService))
 	telegramService.RegisterCommandLet(bankSkynet.NewRebuildChefNodeRecipeReplyCommandlet(chefStore, alertService,
 		telegramService))
 
 	httpLogger := log.With(logger, "component", "http")
 
 	mux := http.NewServeMux()
+	//Base MUX
 	mux.Handle("/alert/", alert.MakeHandler(alertService, httpLogger, machineLearningService))
 	mux.Handle("/chefAudit", analytics.MakeHandler(analyticsService, httpLogger, machineLearningService))
 	mux.Handle("/appdynamics/", appdynamics.MakeHandler(appdynamicsService, httpLogger, machineLearningService))
@@ -349,9 +340,14 @@ func main() {
 	mux.Handle("/skynet/", bankSkynet.MakeHandler(skynetService, httpLogger, machineLearningService))
 	mux.Handle("/sensu", sensu.MakeHandler(sensuService, httpLogger, machineLearningService))
 	mux.Handle("/users/", user.MakeHandler(userService, httpLogger, machineLearningService))
-	mux.Handle("/aws/sendTestAlert", halaws.MakeHandler(aws, httpLogger, machineLearningService))
+	mux.Handle("/aws/", halaws.MakeHandler(aws, httpLogger, machineLearningService))
 	mux.Handle("/callout/", callout.MakeHandler(calloutService, httpLogger, machineLearningService))
 	mux.Handle("/github/", github.MakeHandler(githubService, httpLogger, machineLearningService))
+	mux.Handle("/telegram/", telegram.MakeHandler(telegramService, httpLogger, machineLearningService))
+	mux.Handle("/httpEndpoints",httpSmoke.MakeHandler(httpService,httpLogger,machineLearningService))
+
+	//Bank MUX
+	mux.Handle("/bankcallout/firstcall",bankCallout.MakeHandler(firstcallService.(bankCallout.Service),httpLogger,machineLearningService))
 
 	http.Handle("/", panicHandler{accessControl(mux), jiraService, alertService})
 	http.Handle("/metrics", promhttp.Handler())
@@ -384,15 +380,13 @@ func main() {
 	logger.Log("terminated", <-errs)
 
 }
-func getTechnicalUser() string {
-	return os.Getenv("TECH_USER")
-}
+
 
 func accessControl(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type")
+		w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization")
 
 		if r.Method == "OPTIONS" {
 			return
@@ -416,7 +410,6 @@ func (h panicHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			err, ok := err.(error)
 			if ok {
 				h.alert.SendError(context.TODO(), fmt.Errorf("panic detected: %v \n %v", err.Error(), string(debug.Stack())))
-				h.jira.CreateJira(context.TODO(), fmt.Sprintf("HAL Panic - %v", err.Error()), string(debug.Stack()), getTechnicalUser())
 			}
 		}
 	}()

@@ -14,10 +14,12 @@ import (
 type rebuildNode struct {
 	alertService  alert.Service
 	skynetService Service
+	telegram.Store
+	telegram.Service
 }
 
-func NewRebuildNodeCommand(alertService alert.Service, skynetService Service) telegram.Command {
-	return &rebuildNode{alertService, skynetService}
+func NewRebuildNodeCommand(alertService alert.Service, skynetService Service,store telegram.Store, service2 telegram.Service) telegram.Command {
+	return &rebuildNode{alertService, skynetService, store,service2}
 }
 
 func (s *rebuildNode) RestrictToAuthorised() bool {
@@ -42,7 +44,15 @@ func (s *rebuildNode) Execute(update tgbotapi.Update) {
 
 		}
 	}()
-	s.skynetService.RecreateNode(context.TODO(), update.Message.CommandArguments(), update.Message.From.UserName)
+	room, err := s.GetUUID(update.Message.Chat.ID)
+	if err != nil {
+		s.SendMessagePlainText(context.TODO(),update.Message.Chat.ID,
+			fmt.Sprintf("There was an error looking up your bot room. %v",err.Error()),update.Message.MessageID)
+		s.alertService.SendError(context.TODO(),err)
+		return
+	}
+
+	s.skynetService.RecreateNode(context.TODO(), room,update.Message.CommandArguments(), update.Message.From.UserName)
 }
 
 /* ------------------- */
@@ -74,7 +84,7 @@ func (s *rebuildChefNode) CommandDescription() string {
 }
 
 func (s *rebuildChefNode) Execute(update tgbotapi.Update) {
-	s.stateStore.SetState(update.Message.From.ID, "REBUILD_CHEF", nil)
+	s.stateStore.SetState(update.Message.From.ID, update.Message.Chat.ID, "REBUILD_CHEF", nil)
 	sendRecipeKeyboard(update.Message.Chat.ID, "Please select the application for the node you want to rebuild",
 		s.alert, s.chefStore, s.telegram)
 }
@@ -146,10 +156,12 @@ func (s *rebuildChefNodeEnvironmentReply) Fields(update tgbotapi.Update, state t
 type rebuildChefNodeExecute struct {
 	skynet Service
 	alert  alert.Service
+	store telegram.Store
+	telegram telegram.Service
 }
 
-func NewRebuildChefNodeExecute(skynet Service, alert alert.Service) telegram.Commandlet {
-	return &rebuildChefNodeExecute{skynet, alert}
+func NewRebuildChefNodeExecute(skynet Service, alert alert.Service, store telegram.Store, service2 telegram.Service) telegram.Commandlet {
+	return &rebuildChefNodeExecute{skynet, alert, store,service2}
 }
 
 func (s *rebuildChefNodeExecute) CanExecute(update tgbotapi.Update, state telegram.State) bool {
@@ -158,7 +170,14 @@ func (s *rebuildChefNodeExecute) CanExecute(update tgbotapi.Update, state telegr
 
 func (s *rebuildChefNodeExecute) Execute(update tgbotapi.Update, state telegram.State) {
 	go func() {
-		err := s.skynet.RecreateNode(context.TODO(), update.Message.Text, update.Message.From.FirstName)
+		room, err := s.store.GetUUID(update.Message.Chat.ID)
+		if err != nil {
+			s.telegram.SendMessagePlainText(context.TODO(),update.Message.Chat.ID,
+				fmt.Sprintf("There was an error looking up your bot room. %v",err.Error()),update.Message.MessageID)
+			s.alert.SendError(context.TODO(),err)
+			return
+		}
+		err = s.skynet.RecreateNode(context.TODO(),room,update.Message.Text, update.Message.From.FirstName)
 		if err != nil {
 			s.alert.SendError(context.TODO(), err)
 		}

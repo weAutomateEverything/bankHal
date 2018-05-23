@@ -20,10 +20,10 @@ func NewInstrumentService(counter metrics.Counter, latency metrics.Histogram, s 
 	}
 }
 
-func (s *instrumentingService) RecreateNode(ctx context.Context, nodeName, callerName string) error {
+func (s *instrumentingService) RecreateNode(ctx context.Context,chatid uint32, nodeName, callerName string) error {
 	defer func(begin time.Time) {
 		s.requestCount.With("method", "RecreateNode").Add(1)
 		s.requestLatency.With("method", "RecreateNode").Observe(time.Since(begin).Seconds())
 	}(time.Now())
-	return s.Service.RecreateNode(ctx, nodeName, callerName)
+	return s.Service.RecreateNode(ctx,chatid, nodeName, callerName)
 }

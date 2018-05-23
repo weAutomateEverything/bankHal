@@ -3,6 +3,7 @@ package bankSkynet
 import (
 	"context"
 	"github.com/go-kit/kit/endpoint"
+	"github.com/weAutomateEverything/go2hal/gokit"
 )
 
 type SkynetRebuildRequest struct {
@@ -13,7 +14,7 @@ type SkynetRebuildRequest struct {
 func makeSkynetRebuildEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(SkynetRebuildRequest)
-		s.RecreateNode(ctx, req.NodeName, req.User)
+		s.RecreateNode(ctx,gokit.GetChatId(ctx), req.NodeName, req.User)
 		return nil, err
 	}
 }
@@ -21,7 +22,7 @@ func makeSkynetRebuildEndpoint(s Service) endpoint.Endpoint {
 func makeSkynetAlertEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(string)
-		s.sendSkynetAlert(ctx, req)
+		s.sendSkynetAlert(ctx,gokit.GetChatId(ctx), req)
 		return nil, nil
 	}
 }

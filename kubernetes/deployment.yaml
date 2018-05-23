@@ -15,15 +15,13 @@ spec:
         app: hal
     spec:
       containers:
-      - image: zamedic/go2hal:1.719.1
+      - image: zamedic/bankhal:1.719.1
         name: hal
         ports:
         - containerPort: 8000
           protocol: TCP
         - containerPort: 8080
           protocol: TCP
-        - containerPort: 9162
-          protocol: UDP
         envFrom:
         - configMapRef:
             name: hal
