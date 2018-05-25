@@ -1,19 +1,22 @@
 package bankCallout
 
 import (
-	"database/sql"
-	_ "github.com/denisenkom/go-mssqldb"
 	"context"
-	"strings"
-	"time"
+	"database/sql"
+	"fmt"
+	_ "github.com/denisenkom/go-mssqldb"
+	"github.com/weAutomateEverything/go2hal/firstCall"
+	"github.com/weAutomateEverything/go2hal/telegram"
 	"log"
 	"os"
-	"fmt"
-	"github.com/weAutomateEverything/go2hal/firstCall"
+	"strings"
+	"time"
 )
 
 type bankCallout struct {
-	store Store
+	store         Store
+	telegram      telegram.Service
+	telegramStore telegram.Store
 }
 
 type Service interface {
@@ -21,9 +24,11 @@ type Service interface {
 	getGroup(ctx context.Context, chat uint32) (string, error)
 }
 
-func NewService(store Store) firstCall.Service {
+func NewService(store Store, telegram telegram.Service, telegramStore telegram.Store) firstCall.Service {
 	return bankCallout{
-		store: store,
+		store:         store,
+		telegram:      telegram,
+		telegramStore: telegramStore,
 	}
 
 }
@@ -44,6 +49,15 @@ func (s bankCallout) setGroup(ctx context.Context, chat uint32, group string) (n
 		return
 	}
 	err = s.store.setCallout(chat, group)
+
+	if err != nil {
+		g, err := s.telegramStore.GetRoomKey(chat)
+		if err != nil {
+			s.telegram.SendMessage(ctx, g, fmt.Sprintf("Your callout group has been successfully changed to %v. On firstcall is %v, %v", group, name, number), 0)
+
+		}
+	}
+
 	return
 }
 
