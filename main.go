@@ -325,7 +325,7 @@ func main() {
 	telegramService.RegisterCommand(bankldapService.NewTokenCommand(telegramService, bankLdapStore))
 
 	telegramService.RegisterCommandLet(bankSkynet.NewRebuildChefNodeEnvironmentReplyCommandlet(telegramService,
-		skynetService, chefService))
+		skynetService, chefService, telegramStore))
 	telegramService.RegisterCommandLet(bankSkynet.NewRebuildChefNodeExecute(skynetService, alertService, telegramStore, telegramService))
 	telegramService.RegisterCommandLet(bankSkynet.NewRebuildChefNodeRecipeReplyCommandlet(chefStore, alertService,
 		telegramService))
@@ -337,7 +337,7 @@ func main() {
 	mux.Handle("/alert/", alert.MakeHandler(alertService, httpLogger, machineLearningService))
 	mux.Handle("/chefAudit", analytics.MakeHandler(analyticsService, httpLogger, machineLearningService))
 	mux.Handle("/appdynamics/", appdynamics.MakeHandler(appdynamicsService, httpLogger, machineLearningService))
-	mux.Handle("/delivery/", chef.MakeHandler(chefService, httpLogger, machineLearningService))
+	mux.Handle("/chef/", chef.MakeHandler(chefService, httpLogger, machineLearningService))
 	mux.Handle("/skynet/", bankSkynet.MakeHandler(skynetService, httpLogger, machineLearningService))
 	mux.Handle("/sensu/", sensu.MakeHandler(sensuService, httpLogger, machineLearningService))
 	mux.Handle("/users/", user.MakeHandler(userService, httpLogger, machineLearningService))

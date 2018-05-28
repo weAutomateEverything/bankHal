@@ -18,8 +18,8 @@ type rebuildNode struct {
 	telegram.Service
 }
 
-func NewRebuildNodeCommand(alertService alert.Service, skynetService Service,store telegram.Store, service2 telegram.Service) telegram.Command {
-	return &rebuildNode{alertService, skynetService, store,service2}
+func NewRebuildNodeCommand(alertService alert.Service, skynetService Service, store telegram.Store, service2 telegram.Service) telegram.Command {
+	return &rebuildNode{alertService, skynetService, store, service2}
 }
 
 func (s *rebuildNode) RestrictToAuthorised() bool {
@@ -46,13 +46,13 @@ func (s *rebuildNode) Execute(update tgbotapi.Update) {
 	}()
 	room, err := s.GetUUID(update.Message.Chat.ID)
 	if err != nil {
-		s.SendMessagePlainText(context.TODO(),update.Message.Chat.ID,
-			fmt.Sprintf("There was an error looking up your bot room. %v",err.Error()),update.Message.MessageID)
-		s.alertService.SendError(context.TODO(),err)
+		s.SendMessagePlainText(context.TODO(), update.Message.Chat.ID,
+			fmt.Sprintf("There was an error looking up your bot room. %v", err.Error()), update.Message.MessageID)
+		s.alertService.SendError(context.TODO(), err)
 		return
 	}
 
-	s.skynetService.RecreateNode(context.TODO(), room,update.Message.CommandArguments(), update.Message.From.UserName)
+	s.skynetService.RecreateNode(context.TODO(), room, update.Message.CommandArguments(), update.Message.From.UserName)
 }
 
 /* ------------------- */
@@ -122,13 +122,14 @@ func (s *rebuildChefNodeRecipeReply) Fields(update tgbotapi.Update, state telegr
 
 type rebuildChefNodeEnvironmentReply struct {
 	telegram    telegram.Service
+	store       telegram.Store
 	service     Service
 	chefService chef.Service
 }
 
 func NewRebuildChefNodeEnvironmentReplyCommandlet(telegram telegram.Service, service Service,
-	chefService chef.Service) telegram.Commandlet {
-	return &rebuildChefNodeEnvironmentReply{telegram, service, chefService}
+	chefService chef.Service, store telegram.Store) telegram.Commandlet {
+	return &rebuildChefNodeEnvironmentReply{telegram, store, service, chefService}
 }
 
 func (s *rebuildChefNodeEnvironmentReply) CanExecute(update tgbotapi.Update, state telegram.State) bool {
@@ -136,7 +137,13 @@ func (s *rebuildChefNodeEnvironmentReply) CanExecute(update tgbotapi.Update, sta
 }
 
 func (s *rebuildChefNodeEnvironmentReply) Execute(update tgbotapi.Update, state telegram.State) {
-	nodes := s.chefService.FindNodesFromFriendlyNames(state.Field[0], update.Message.Text)
+	g, err := s.store.GetUUID(update.Message.Chat.ID)
+	if err != nil {
+		s.telegram.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("There was an error trying to execute your method. %v",
+			err.Error()), update.Message.MessageID)
+		return
+	}
+	nodes := s.chefService.FindNodesFromFriendlyNames(state.Field[0], update.Message.Text, g)
 	res := make([]string, len(nodes))
 	for i, x := range nodes {
 		res[i] = x.Name
@@ -154,14 +161,14 @@ func (s *rebuildChefNodeEnvironmentReply) Fields(update tgbotapi.Update, state t
 
 /*------------------*/
 type rebuildChefNodeExecute struct {
-	skynet Service
-	alert  alert.Service
-	store telegram.Store
+	skynet   Service
+	alert    alert.Service
+	store    telegram.Store
 	telegram telegram.Service
 }
 
 func NewRebuildChefNodeExecute(skynet Service, alert alert.Service, store telegram.Store, service2 telegram.Service) telegram.Commandlet {
-	return &rebuildChefNodeExecute{skynet, alert, store,service2}
+	return &rebuildChefNodeExecute{skynet, alert, store, service2}
 }
 
 func (s *rebuildChefNodeExecute) CanExecute(update tgbotapi.Update, state telegram.State) bool {
@@ -172,12 +179,12 @@ func (s *rebuildChefNodeExecute) Execute(update tgbotapi.Update, state telegram.
 	go func() {
 		room, err := s.store.GetUUID(update.Message.Chat.ID)
 		if err != nil {
-			s.telegram.SendMessagePlainText(context.TODO(),update.Message.Chat.ID,
-				fmt.Sprintf("There was an error looking up your bot room. %v",err.Error()),update.Message.MessageID)
-			s.alert.SendError(context.TODO(),err)
+			s.telegram.SendMessagePlainText(context.TODO(), update.Message.Chat.ID,
+				fmt.Sprintf("There was an error looking up your bot room. %v", err.Error()), update.Message.MessageID)
+			s.alert.SendError(context.TODO(), err)
 			return
 		}
-		err = s.skynet.RecreateNode(context.TODO(),room,update.Message.Text, update.Message.From.FirstName)
+		err = s.skynet.RecreateNode(context.TODO(), room, update.Message.Text, update.Message.From.FirstName)
 		if err != nil {
 			s.alert.SendError(context.TODO(), err)
 		}
