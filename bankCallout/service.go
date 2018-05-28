@@ -51,12 +51,13 @@ func (s bankCallout) setGroup(ctx context.Context, chat uint32, group string) (n
 	err = s.store.setCallout(chat, group)
 
 	if err != nil {
-		g, err := s.telegramStore.GetRoomKey(chat)
-		if err != nil {
-			s.telegram.SendMessage(ctx, g, fmt.Sprintf("Your callout group has been successfully changed to %v. On firstcall is %v, %v", group, name, number), 0)
-
-		}
+		return
 	}
+	g, err := s.telegramStore.GetRoomKey(chat)
+	if err != nil {
+		return
+	}
+	s.telegram.SendMessage(ctx, g, fmt.Sprintf("Your callout group has been successfully changed to %v. On firstcall is %v, %v", group, name, number), 0)
 
 	return
 }
@@ -66,6 +67,7 @@ func (s bankCallout) getGroup(ctx context.Context, chat uint32) (string, error) 
 }
 
 func (s bankCallout) getCallout(group string) (name string, number string, err error) {
+	name, number = "", ""
 	c := fmt.Sprintf("server=%v;user id=%v;password=%v;encrypt=disable;database=%v", getCalloutDbServer(), getCalloutDbUser(), getCalloutDbPassword(), getCalloutDBSchema())
 	log.Println(c)
 	db, err := sql.Open("mssql", c)
