@@ -16,7 +16,7 @@ before_script:
   - ./cc-test-reporter before-build
   - go get github.com/axw/gocov/gocov
   - go get -u github.com/go-swagger/go-swagger/cmd/swagger
-  - swagger generate spec -o -m ./swagger.json
+  - swagger generate spec -m -o ./swagger.json
 
 script:
  - go test -coverprofile=c.out ./...
