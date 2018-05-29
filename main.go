@@ -1,3 +1,29 @@
+// Terms Of Service:
+//
+// there are no TOS at this moment, use at your own risk we take no responsibility
+//
+//     Schemes: http
+//     Version: 0.0.1
+//     License: MIT http://opensource.org/licenses/MIT
+//     Contact: Marc Arndt<marc@marcarndt.com> http://www.marcarndt.com
+//
+//     Consumes:
+//     - application/json
+//
+//     Produces:
+//     - application/json
+//
+//     Security:
+//     - api_key:
+//
+//     SecurityDefinitions:
+//     api_key:
+//          type: apiKey
+//          name: bearer
+//          in: header
+//
+//
+// swagger:meta
 package main
 
 import (
@@ -34,6 +60,7 @@ import (
 	"github.com/weAutomateEverything/go2hal/machineLearning"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -352,6 +379,7 @@ func main() {
 
 	http.Handle("/", panicHandler{accessControl(mux), jiraService, alertService})
 	http.Handle("/metrics", promhttp.Handler())
+	http.Handle("/swagger.json", swagger{})
 
 	grpc := grpc.NewServer()
 	remoteTelegramCommands.RegisterRemoteCommandServer(grpc, remoteTelegramCommand)
@@ -414,4 +442,19 @@ func (h panicHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 	h.Handler.ServeHTTP(w, r)
+}
+
+type swagger struct {
+	http.Handler
+}
+
+func (h swagger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	b, err := ioutil.ReadFile("swagger.json")
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(err.Error()))
+	} else {
+		w.WriteHeader(200)
+		w.Write(b)
+	}
 }
