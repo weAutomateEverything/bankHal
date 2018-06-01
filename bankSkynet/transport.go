@@ -21,8 +21,8 @@ func MakeHandler(service Service, logger kitlog.Logger, ml machineLearning.Servi
 
 	r := mux.NewRouter()
 
-	r.Handle("/skynet/", skynetAlert).Methods("POST")
-	r.Handle("/skynet/rebuild", skynetRebuild).Methods("POST")
+	r.Handle("/api/skynet/", skynetAlert).Methods("POST")
+	r.Handle("/api/skynet/rebuild", skynetRebuild).Methods("POST")
 
 	return r
 
