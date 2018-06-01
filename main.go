@@ -25,7 +25,7 @@ import (
 	"github.com/weAutomateEverything/bankHal/bankCallout"
 	"github.com/weAutomateEverything/bankHal/bankSkynet"
 	"github.com/weAutomateEverything/bankHal/bankldapService"
-	go2hal2 "github.com/weAutomateEverything/go2hal/go2hal"
+	go2hal2 "github.com/weAutomateEverything/go2hal/go2halStartup"
 )
 
 func main() {
