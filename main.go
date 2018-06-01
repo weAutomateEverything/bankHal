@@ -36,7 +36,8 @@ func main() {
 
 	//A auth service for our bank. If you dont want auth use auth.alwaysTrueAuthService()
 	go2hal.AuthService = bankldapService.NewService(bankLdapStore)
-	go2hal.FirstCallService = bankCallout.NewService(firstcallStore, go2hal.TelegramService, go2hal.TelegramStore)
+	bankfirstcall := bankCallout.NewService(firstcallStore, go2hal.TelegramService, go2hal.TelegramStore)
+	go2hal.FirstCallService.AddCalloutFunc(bankfirstcall)
 
 	skynetService := bankSkynet.NewService(go2hal.AlertService, go2hal.ChefStore, go2hal.CalloutService)
 
@@ -53,7 +54,7 @@ func main() {
 		go2hal.TelegramService))
 
 	go2hal.Mux.Handle("/api/skynet/", bankSkynet.MakeHandler(skynetService, go2hal.HTTPLogger, go2hal.MachineLearningService))
-	go2hal.Mux.Handle("/api/bankcallout/firstcall", bankCallout.MakeHandler(go2hal.FirstCallService.(bankCallout.Service), go2hal.HTTPLogger, go2hal.MachineLearningService))
+	go2hal.Mux.Handle("/api/bankcallout/firstcall", bankCallout.MakeHandler(bankfirstcall.(bankCallout.Service), go2hal.HTTPLogger, go2hal.MachineLearningService))
 
 	go2hal.Start()
 }
