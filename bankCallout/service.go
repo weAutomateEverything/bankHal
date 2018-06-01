@@ -24,7 +24,7 @@ type Service interface {
 	getGroup(ctx context.Context, chat uint32) (string, error)
 }
 
-func NewService(store Store, telegram telegram.Service, telegramStore telegram.Store) firstCall.Service {
+func NewService(store Store, telegram telegram.Service, telegramStore telegram.Store) firstCall.CalloutFunction {
 	return bankCallout{
 		store:         store,
 		telegram:      telegram,
@@ -33,7 +33,7 @@ func NewService(store Store, telegram telegram.Service, telegramStore telegram.S
 
 }
 
-func (s bankCallout) GetFirstCall(ctx context.Context, chat uint32) (name string, number string, err error) {
+func (s bankCallout) GetFirstCallDetails(ctx context.Context, chat uint32) (name string, number string, err error) {
 
 	group, err := s.store.getCalloutGroup(chat)
 	if err != nil {
