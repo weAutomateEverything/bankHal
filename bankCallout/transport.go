@@ -33,7 +33,6 @@ func MakeHandler(service Service, logger kitlog.Logger, ml machineLearning.Servi
 
 	r.Handle("/api/bankcallout/firstcall", setCalloutGroup).Methods("POST")
 	r.Handle("/api/bankcallout/firstcall", getCalloutGroup).Methods("GET")
-	//r.Handle("/httpendpoints/{id}", authpoll).Methods("DELETE")
 
 	return r
 
