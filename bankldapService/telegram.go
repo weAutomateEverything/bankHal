@@ -1,19 +1,19 @@
 package bankldapService
 
 import (
-	"gopkg.in/telegram-bot-api.v4"
+	"fmt"
+	bankldap2 "github.com/weAutomateEverything/bankHal/bankldapService/bankldap"
 	"github.com/weAutomateEverything/go2hal/telegram"
 	"golang.org/x/net/context"
-	"os"
-	"fmt"
-	"net/smtp"
-	"log"
-	"net"
-	"math/rand"
-	"strconv"
-	bankldap2 "github.com/weAutomateEverything/bankHal/bankldapService/bankldap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"gopkg.in/telegram-bot-api.v4"
+	"log"
+	"math/rand"
+	"net"
+	"net/smtp"
+	"os"
+	"strconv"
 )
 
 type register struct {
@@ -44,15 +44,14 @@ func (s *register) Execute(update tgbotapi.Update) {
 		return
 	}
 
-
-	certs, err := credentials.NewClientTLSFromFile("/Users/marcarndt/Downloads/cacert.pem","")
+	certs, err := credentials.NewClientTLSFromFile("/cacert.pem", "")
 	if err != nil {
 		s.service.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("Cert error %v", err.Error()),
 			update.Message.MessageID)
 		return
 	}
 
-	con, err := grpc.Dial(getLdapEndpoint(),grpc.WithTransportCredentials(certs))
+	con, err := grpc.Dial(getLdapEndpoint(), grpc.WithTransportCredentials(certs))
 	if err != nil {
 		s.service.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("Unable to lookup user %v, error from GRPC %v", arg, err.Error()),
 			update.Message.MessageID)
@@ -62,7 +61,6 @@ func (s *register) Execute(update tgbotapi.Update) {
 	_, err = client.Ping(
 		context.TODO(),
 		&bankldap2.Empty{},
-
 	)
 
 	if err != nil {
@@ -73,7 +71,7 @@ func (s *register) Execute(update tgbotapi.Update) {
 
 	log.Println(arg)
 
-	response, err := client.Lookup(context.TODO(),&bankldap2.User{Anumber:arg})
+	response, err := client.Lookup(context.TODO(), &bankldap2.User{Anumber: arg})
 	if err != nil {
 		s.service.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("Unable to lookup user %v, error reding body %v", arg, err.Error()),
 			update.Message.MessageID)
@@ -172,7 +170,7 @@ func (s token) Execute(update tgbotapi.Update) {
 
 	token, err := s.getTokenForUser(strconv.Itoa(update.Message.From.ID))
 	if err != nil {
-		s.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("There was a problem fetching your registration record. To start the registration process please use /Register <employee number>. Error was %v",err.Error()), update.Message.MessageID)
+		s.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("There was a problem fetching your registration record. To start the registration process please use /Register <employee number>. Error was %v", err.Error()), update.Message.MessageID)
 		return
 	}
 
@@ -184,10 +182,10 @@ func (s token) Execute(update tgbotapi.Update) {
 	err = s.authorizeUser(strconv.Itoa(update.Message.From.ID))
 
 	if err != nil {
-		s.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("Although your token was correct, there was a problem activating you. Error was %v",err.Error()), update.Message.MessageID)
+		s.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("Although your token was correct, there was a problem activating you. Error was %v", err.Error()), update.Message.MessageID)
 		return
 	}
-	s.SendMessage(context.TODO(), update.Message.Chat.ID,"You have been successfully authorised", update.Message.MessageID)
+	s.SendMessage(context.TODO(), update.Message.Chat.ID, "You have been successfully authorised", update.Message.MessageID)
 }
 
 func getLdapEndpoint() string {
