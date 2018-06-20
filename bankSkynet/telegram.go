@@ -44,7 +44,7 @@ func (s *rebuildNode) Execute(update tgbotapi.Update) {
 
 		}
 	}()
-	room, err := s.GetUUID(update.Message.Chat.ID)
+	room, err := s.GetUUID(update.Message.Chat.ID, update.Message.Chat.Title)
 	if err != nil {
 		s.SendMessagePlainText(context.TODO(), update.Message.Chat.ID,
 			fmt.Sprintf("There was an error looking up your bot room. %v", err.Error()), update.Message.MessageID)
@@ -137,7 +137,7 @@ func (s *rebuildChefNodeEnvironmentReply) CanExecute(update tgbotapi.Update, sta
 }
 
 func (s *rebuildChefNodeEnvironmentReply) Execute(update tgbotapi.Update, state telegram.State) {
-	g, err := s.store.GetUUID(update.Message.Chat.ID)
+	g, err := s.store.GetUUID(update.Message.Chat.ID, update.Message.Chat.Title)
 	if err != nil {
 		s.telegram.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("There was an error trying to execute your method. %v",
 			err.Error()), update.Message.MessageID)
@@ -177,7 +177,7 @@ func (s *rebuildChefNodeExecute) CanExecute(update tgbotapi.Update, state telegr
 
 func (s *rebuildChefNodeExecute) Execute(update tgbotapi.Update, state telegram.State) {
 	go func() {
-		room, err := s.store.GetUUID(update.Message.Chat.ID)
+		room, err := s.store.GetUUID(update.Message.Chat.ID, update.Message.Chat.Title)
 		if err != nil {
 			s.telegram.SendMessagePlainText(context.TODO(), update.Message.Chat.ID,
 				fmt.Sprintf("There was an error looking up your bot room. %v", err.Error()), update.Message.MessageID)
