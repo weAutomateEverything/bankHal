@@ -81,12 +81,13 @@ func (s bankCallout) getCallout(group string) (name string, number string, err e
 
 	q := fmt.Sprintf("SELECT FirstName,Primary1st FROM CalloutListingFirstCall where DateFrom < '%v' and DateTo > '%v' and Team = '%v'", t, t, group)
 	stmt, err := db.Query(q)
-	defer stmt.Close()
 
 	if err != nil {
 		return
 
 	}
+	defer stmt.Close()
+
 	stmt.Next()
 	err = stmt.Scan(&name, &number)
 	if err != nil {
@@ -95,7 +96,10 @@ func (s bankCallout) getCallout(group string) (name string, number string, err e
 
 	number = strings.Replace(number, " ", "", -1)
 	number = strings.Replace(number, "-", "", -1)
-	number = strings.Replace(number, "0", "+27", 1)
+	if strings.HasPrefix(number, "0") {
+		number = strings.Replace(number, "0", "+27", 1)
+
+	}
 
 	return
 }
