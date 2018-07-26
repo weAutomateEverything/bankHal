@@ -9,6 +9,7 @@ import (
 	"golang.org/x/net/context"
 	"gopkg.in/telegram-bot-api.v4"
 	"runtime/debug"
+	"github.com/aws/aws-xray-sdk-go/xray"
 )
 
 type rebuildNode struct {
@@ -137,13 +138,16 @@ func (s *rebuildChefNodeEnvironmentReply) CanExecute(update tgbotapi.Update, sta
 }
 
 func (s *rebuildChefNodeEnvironmentReply) Execute(update tgbotapi.Update, state telegram.State) {
+	ctx, seg := xray.BeginSegment(context.Background(),"Telegram Rebuild Chef Node")
+	var err error
+	defer seg.Close(err)
 	g, err := s.store.GetUUID(update.Message.Chat.ID, update.Message.Chat.Title)
 	if err != nil {
 		s.telegram.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("There was an error trying to execute your method. %v",
 			err.Error()), update.Message.MessageID)
 		return
 	}
-	nodes := s.chefService.FindNodesFromFriendlyNames(state.Field[0], update.Message.Text, g)
+	nodes := s.chefService.FindNodesFromFriendlyNames(ctx, state.Field[0], update.Message.Text, g)
 	res := make([]string, len(nodes))
 	for i, x := range nodes {
 		res[i] = x.Name
