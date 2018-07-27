@@ -37,50 +37,50 @@ func (*register) CommandDescription() string {
 	return "Register yourself as a user. Add your employee number to the call"
 }
 
-func (s *register) Execute(update tgbotapi.Update) {
+func (s *register) Execute(ctx context.Context, update tgbotapi.Update) {
 	arg := update.Message.CommandArguments()
 	if len(arg) == 0 {
-		s.service.SendMessage(context.TODO(), update.Message.Chat.ID, "to register, please type /Register <employee number>", update.Message.MessageID)
+		s.service.SendMessage(ctx, update.Message.Chat.ID, "to register, please type /Register <employee number>", update.Message.MessageID)
 		return
 	}
 
 	certs, err := credentials.NewClientTLSFromFile("/cacert.pem", "")
 	if err != nil {
-		s.service.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("Cert error %v", err.Error()),
+		s.service.SendMessage(ctx, update.Message.Chat.ID, fmt.Sprintf("Cert error %v", err.Error()),
 			update.Message.MessageID)
 		return
 	}
 
 	con, err := grpc.Dial(getLdapEndpoint(), grpc.WithTransportCredentials(certs))
 	if err != nil {
-		s.service.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("Unable to lookup user %v, error from GRPC %v", arg, err.Error()),
+		s.service.SendMessage(ctx, update.Message.Chat.ID, fmt.Sprintf("Unable to lookup user %v, error from GRPC %v", arg, err.Error()),
 			update.Message.MessageID)
 		return
 	}
 	client := bankldap2.NewBankLdapClient(con)
 	_, err = client.Ping(
-		context.TODO(),
+		ctx,
 		&bankldap2.Empty{},
 	)
 
 	if err != nil {
-		s.service.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("Ping error %v", err.Error()),
+		s.service.SendMessage(ctx, update.Message.Chat.ID, fmt.Sprintf("Ping error %v", err.Error()),
 			update.Message.MessageID)
 		return
 	}
 
 	log.Println(arg)
 
-	response, err := client.Lookup(context.TODO(), &bankldap2.User{Anumber: arg})
+	response, err := client.Lookup(ctx, &bankldap2.User{Anumber: arg})
 	if err != nil {
-		s.service.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("Unable to lookup user %v, error reding body %v", arg, err.Error()),
+		s.service.SendMessage(ctx, update.Message.Chat.ID, fmt.Sprintf("Unable to lookup user %v, error reding body %v", arg, err.Error()),
 			update.Message.MessageID)
 		return
 	}
 	e := response.Email
 
 	if len(e) == 0 {
-		s.service.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("Unable to lookup user %v,no email address found", arg),
+		s.service.SendMessage(ctx, update.Message.Chat.ID, fmt.Sprintf("Unable to lookup user %v,no email address found", arg),
 			update.Message.MessageID)
 		return
 	}
@@ -95,26 +95,26 @@ func (s *register) Execute(update tgbotapi.Update) {
 
 	c, err := smtp.NewClient(conn, getSMTPServer())
 	if err != nil {
-		s.service.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("We were unable to create a SMTP connection to send you a token. %v", err.Error()),
+		s.service.SendMessage(ctx, update.Message.Chat.ID, fmt.Sprintf("We were unable to create a SMTP connection to send you a token. %v", err.Error()),
 			update.Message.MessageID)
 		return
 	}
 
 	if err = c.Mail(getFromEmailAddress()); err != nil {
-		s.service.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("We were unable to communicate with the SMTP server. %v", err.Error()),
+		s.service.SendMessage(ctx, update.Message.Chat.ID, fmt.Sprintf("We were unable to communicate with the SMTP server. %v", err.Error()),
 			update.Message.MessageID)
 		return
 	}
 
 	if err = c.Rcpt(e); err != nil {
-		s.service.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("We were unable to communicate with the SMTP server. %v", err.Error()),
+		s.service.SendMessage(ctx, update.Message.Chat.ID, fmt.Sprintf("We were unable to communicate with the SMTP server. %v", err.Error()),
 			update.Message.MessageID)
 		return
 	}
 
 	w, err := c.Data()
 	if err != nil {
-		s.service.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("We were unable to communicate with the SMTP server. %v", err.Error()),
+		s.service.SendMessage(ctx, update.Message.Chat.ID, fmt.Sprintf("We were unable to communicate with the SMTP server. %v", err.Error()),
 			update.Message.MessageID)
 		return
 	}
@@ -123,20 +123,20 @@ func (s *register) Execute(update tgbotapi.Update) {
 		fmt.Sprintf("From %v,\r\nTo:%v\r\nSubject:Hal Authentication Token\r\n\r\nYour HAL registration token is %v", getFromEmailAddress(), e, token),
 	))
 	if err != nil {
-		s.service.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("We were unable to communicate with the SMTP server. %v", err.Error()),
+		s.service.SendMessage(ctx, update.Message.Chat.ID, fmt.Sprintf("We were unable to communicate with the SMTP server. %v", err.Error()),
 			update.Message.MessageID)
 		return
 	}
 
 	err = w.Close()
 	if err != nil {
-		s.service.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("We were unable to communicate with the SMTP server. %v", err.Error()),
+		s.service.SendMessage(ctx, update.Message.Chat.ID, fmt.Sprintf("We were unable to communicate with the SMTP server. %v", err.Error()),
 			update.Message.MessageID)
 		return
 	}
 
 	c.Quit()
-	s.service.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("Registration token has been sent to %v", e),
+	s.service.SendMessage(ctx, update.Message.Chat.ID, fmt.Sprintf("Registration token has been sent to %v", e),
 		update.Message.MessageID)
 }
 
@@ -161,31 +161,31 @@ func (token) CommandDescription() string {
 	return "Complete the registration process by providing the token you recieved via email. "
 }
 
-func (s token) Execute(update tgbotapi.Update) {
+func (s token) Execute(ctx context.Context, update tgbotapi.Update) {
 	arg := update.Message.CommandArguments()
 	if len(arg) == 0 {
-		s.SendMessage(context.TODO(), update.Message.Chat.ID, "To complete your registration please enter /Token <token> - the token you would have received by using /Register <employee number>", update.Message.MessageID)
+		s.SendMessage(ctx, update.Message.Chat.ID, "To complete your registration please enter /Token <token> - the token you would have received by using /Register <employee number>", update.Message.MessageID)
 		return
 	}
 
 	token, err := s.getTokenForUser(strconv.Itoa(update.Message.From.ID))
 	if err != nil {
-		s.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("There was a problem fetching your registration record. To start the registration process please use /Register <employee number>. Error was %v", err.Error()), update.Message.MessageID)
+		s.SendMessage(ctx, update.Message.Chat.ID, fmt.Sprintf("There was a problem fetching your registration record. To start the registration process please use /Register <employee number>. Error was %v", err.Error()), update.Message.MessageID)
 		return
 	}
 
 	if token != arg {
-		s.SendMessage(context.TODO(), update.Message.Chat.ID, "The token provided does not match the one we have on record. To get a new token use /Register <employee number>", update.Message.MessageID)
+		s.SendMessage(ctx, update.Message.Chat.ID, "The token provided does not match the one we have on record. To get a new token use /Register <employee number>", update.Message.MessageID)
 		return
 	}
 
 	err = s.authorizeUser(strconv.Itoa(update.Message.From.ID))
 
 	if err != nil {
-		s.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("Although your token was correct, there was a problem activating you. Error was %v", err.Error()), update.Message.MessageID)
+		s.SendMessage(ctx, update.Message.Chat.ID, fmt.Sprintf("Although your token was correct, there was a problem activating you. Error was %v", err.Error()), update.Message.MessageID)
 		return
 	}
-	s.SendMessage(context.TODO(), update.Message.Chat.ID, "You have been successfully authorised", update.Message.MessageID)
+	s.SendMessage(ctx, update.Message.Chat.ID, "You have been successfully authorised", update.Message.MessageID)
 }
 
 func getLdapEndpoint() string {
