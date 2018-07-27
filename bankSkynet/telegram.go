@@ -3,13 +3,13 @@ package bankSkynet
 import (
 	"errors"
 	"fmt"
+	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/weAutomateEverything/go2hal/alert"
 	"github.com/weAutomateEverything/go2hal/chef"
 	"github.com/weAutomateEverything/go2hal/telegram"
 	"golang.org/x/net/context"
 	"gopkg.in/telegram-bot-api.v4"
 	"runtime/debug"
-	"github.com/aws/aws-xray-sdk-go/xray"
 )
 
 type rebuildNode struct {
@@ -36,24 +36,24 @@ func (s *rebuildNode) CommandDescription() string {
 	return "Rebuilds a node"
 }
 
-func (s *rebuildNode) Execute(update tgbotapi.Update) {
+func (s *rebuildNode) Execute(ctx context.Context, update tgbotapi.Update) {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Print(err)
-			s.alertService.SendError(context.TODO(), errors.New(fmt.Sprint(err)))
-			s.alertService.SendError(context.TODO(), errors.New(string(debug.Stack())))
+			s.alertService.SendError(ctx, errors.New(fmt.Sprint(err)))
+			s.alertService.SendError(ctx, errors.New(string(debug.Stack())))
 
 		}
 	}()
 	room, err := s.GetUUID(update.Message.Chat.ID, update.Message.Chat.Title)
 	if err != nil {
-		s.SendMessagePlainText(context.TODO(), update.Message.Chat.ID,
+		s.SendMessagePlainText(ctx, update.Message.Chat.ID,
 			fmt.Sprintf("There was an error looking up your bot room. %v", err.Error()), update.Message.MessageID)
-		s.alertService.SendError(context.TODO(), err)
+		s.alertService.SendError(ctx, err)
 		return
 	}
 
-	s.skynetService.RecreateNode(context.TODO(), room, update.Message.CommandArguments(), update.Message.From.UserName)
+	s.skynetService.RecreateNode(ctx, room, update.Message.CommandArguments(), update.Message.From.UserName)
 }
 
 /* ------------------- */
@@ -84,9 +84,9 @@ func (s *rebuildChefNode) CommandDescription() string {
 
 }
 
-func (s *rebuildChefNode) Execute(update tgbotapi.Update) {
+func (s *rebuildChefNode) Execute(ctx context.Context, update tgbotapi.Update) {
 	s.stateStore.SetState(update.Message.From.ID, update.Message.Chat.ID, "REBUILD_CHEF", nil)
-	sendRecipeKeyboard(update.Message.Chat.ID, "Please select the application for the node you want to rebuild",
+	sendRecipeKeyboard(ctx, update.Message.Chat.ID, "Please select the application for the node you want to rebuild",
 		s.alert, s.chefStore, s.telegram)
 }
 
@@ -107,8 +107,8 @@ func (s *rebuildChefNodeRecipeReply) CanExecute(update tgbotapi.Update, state te
 	return state.State == "REBUILD_CHEF"
 }
 
-func (s *rebuildChefNodeRecipeReply) Execute(update tgbotapi.Update, state telegram.State) {
-	sendEnvironemtKeyboard(update.Message.Chat.ID, "Please select the environment of the node you want to rebuild", s.store, s.alert, s.telegram)
+func (s *rebuildChefNodeRecipeReply) Execute(ctx context.Context, update tgbotapi.Update, state telegram.State) {
+	sendEnvironemtKeyboard(ctx, update.Message.Chat.ID, "Please select the environment of the node you want to rebuild", s.store, s.alert, s.telegram)
 }
 
 func (s *rebuildChefNodeRecipeReply) NextState(update tgbotapi.Update, state telegram.State) string {
@@ -137,13 +137,13 @@ func (s *rebuildChefNodeEnvironmentReply) CanExecute(update tgbotapi.Update, sta
 	return state.State == "RebuildChefNodeEnvironment"
 }
 
-func (s *rebuildChefNodeEnvironmentReply) Execute(update tgbotapi.Update, state telegram.State) {
-	ctx, seg := xray.BeginSegment(context.Background(),"Telegram Rebuild Chef Node")
+func (s *rebuildChefNodeEnvironmentReply) Execute(ctx context.Context, update tgbotapi.Update, state telegram.State) {
+	ctx, seg := xray.BeginSegment(context.Background(), "Telegram Rebuild Chef Node")
 	var err error
 	defer seg.Close(err)
 	g, err := s.store.GetUUID(update.Message.Chat.ID, update.Message.Chat.Title)
 	if err != nil {
-		s.telegram.SendMessage(context.TODO(), update.Message.Chat.ID, fmt.Sprintf("There was an error trying to execute your method. %v",
+		s.telegram.SendMessage(ctx, update.Message.Chat.ID, fmt.Sprintf("There was an error trying to execute your method. %v",
 			err.Error()), update.Message.MessageID)
 		return
 	}
@@ -152,7 +152,7 @@ func (s *rebuildChefNodeEnvironmentReply) Execute(update tgbotapi.Update, state 
 	for i, x := range nodes {
 		res[i] = x.Name
 	}
-	s.telegram.SendKeyboard(context.TODO(), res, "Select node to rebuild", update.Message.Chat.ID)
+	s.telegram.SendKeyboard(ctx, res, "Select node to rebuild", update.Message.Chat.ID)
 }
 
 func (s *rebuildChefNodeEnvironmentReply) NextState(update tgbotapi.Update, state telegram.State) string {
@@ -179,18 +179,18 @@ func (s *rebuildChefNodeExecute) CanExecute(update tgbotapi.Update, state telegr
 	return state.State == "RebuildChefNodeSelectNode"
 }
 
-func (s *rebuildChefNodeExecute) Execute(update tgbotapi.Update, state telegram.State) {
+func (s *rebuildChefNodeExecute) Execute(ctx context.Context, update tgbotapi.Update, state telegram.State) {
 	go func() {
 		room, err := s.store.GetUUID(update.Message.Chat.ID, update.Message.Chat.Title)
 		if err != nil {
-			s.telegram.SendMessagePlainText(context.TODO(), update.Message.Chat.ID,
+			s.telegram.SendMessagePlainText(ctx, update.Message.Chat.ID,
 				fmt.Sprintf("There was an error looking up your bot room. %v", err.Error()), update.Message.MessageID)
-			s.alert.SendError(context.TODO(), err)
+			s.alert.SendError(ctx, err)
 			return
 		}
-		err = s.skynet.RecreateNode(context.TODO(), room, update.Message.Text, update.Message.From.FirstName)
+		err = s.skynet.RecreateNode(ctx, room, update.Message.Text, update.Message.From.FirstName)
 		if err != nil {
-			s.alert.SendError(context.TODO(), err)
+			s.alert.SendError(ctx, err)
 		}
 	}()
 }
@@ -203,10 +203,10 @@ func (s *rebuildChefNodeExecute) Fields(update tgbotapi.Update, state telegram.S
 	return nil
 }
 
-func sendRecipeKeyboard(chat int64, text string, alert alert.Service, chefStore chef.Store, telegram telegram.Service) {
+func sendRecipeKeyboard(ctx context.Context, chat int64, text string, alert alert.Service, chefStore chef.Store, telegram telegram.Service) {
 	recipes, err := chefStore.GetRecipes()
 	if err != nil {
-		alert.SendError(context.TODO(), err)
+		alert.SendError(ctx, err)
 		return
 	}
 
@@ -214,13 +214,13 @@ func sendRecipeKeyboard(chat int64, text string, alert alert.Service, chefStore 
 	for x, i := range recipes {
 		l[x] = i.FriendlyName
 	}
-	telegram.SendKeyboard(context.TODO(), l, text, chat)
+	telegram.SendKeyboard(ctx, l, text, chat)
 }
 
-func sendEnvironemtKeyboard(chat int64, text string, store chef.Store, alert alert.Service, telegram telegram.Service) {
+func sendEnvironemtKeyboard(ctx context.Context, chat int64, text string, store chef.Store, alert alert.Service, telegram telegram.Service) {
 	e, err := store.GetChefEnvironments()
 	if err != nil {
-		alert.SendError(context.TODO(), err)
+		alert.SendError(ctx, err)
 		return
 	}
 
@@ -228,5 +228,5 @@ func sendEnvironemtKeyboard(chat int64, text string, store chef.Store, alert ale
 	for x, i := range e {
 		l[x] = i.FriendlyName
 	}
-	telegram.SendKeyboard(context.TODO(), l, text, chat)
+	telegram.SendKeyboard(ctx, l, text, chat)
 }
