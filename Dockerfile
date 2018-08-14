@@ -1,4 +1,4 @@
-FROM Ubuntu 14.04
+FROM ubuntu:14.04
 
 ARG DT_API_URL="https://vzb12882.live.dynatrace.com/api"
 ARG DT_API_TOKEN="5WUwr7a7TtOG4hSe_BC70"
