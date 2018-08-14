@@ -9,9 +9,7 @@ phases:
     - cp -R * /go/src/github.com/weAutomateEverything/bankhal/
   pre_build:
     commands:
-
     finally:
-
   build:
     commands:
     - go get github.com/weAutomateEverything/bankhal
