@@ -21,5 +21,5 @@ COPY cacert.pem /etc/ssl/certs/ca-bundle.crt
 COPY cacert.pem /
 COPY bankhal /app/
 COPY swagger.json /app/
-ENTRYPOINT ["/app/bankhal"]
+CMD ["/app/bankhal"]
 EXPOSE 8000 8080
