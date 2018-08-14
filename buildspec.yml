@@ -28,5 +28,6 @@ artifacts:
   - bankhal
   - swagger.json
   - Dockerfile
+  - cacert.pem
 cache:
   paths:
