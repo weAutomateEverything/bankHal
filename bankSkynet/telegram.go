@@ -3,7 +3,6 @@ package bankSkynet
 import (
 	"errors"
 	"fmt"
-	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/weAutomateEverything/go2hal/alert"
 	"github.com/weAutomateEverything/go2hal/chef"
 	"github.com/weAutomateEverything/go2hal/telegram"
@@ -138,9 +137,7 @@ func (s *rebuildChefNodeEnvironmentReply) CanExecute(update tgbotapi.Update, sta
 }
 
 func (s *rebuildChefNodeEnvironmentReply) Execute(ctx context.Context, update tgbotapi.Update, state telegram.State) {
-	ctx, seg := xray.BeginSegment(context.Background(), "Telegram Rebuild Chef Node")
 	var err error
-	defer seg.Close(err)
 	g, err := s.store.GetUUID(update.Message.Chat.ID, update.Message.Chat.Title)
 	if err != nil {
 		s.telegram.SendMessage(ctx, update.Message.Chat.ID, fmt.Sprintf("There was an error trying to execute your method. %v",
