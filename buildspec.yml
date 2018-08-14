@@ -18,9 +18,7 @@ phases:
     - swagger generate spec -m -o ./swagger.json
   post_build:
     commands:
-
     finally:
-
 artifacts:
   files:
   - bankhal
