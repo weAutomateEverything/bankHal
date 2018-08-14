@@ -6,8 +6,7 @@ ARG DT_ONEAGENT_OPTIONS="flavor=default&include=all"
 ENV DT_HOME="/opt/dynatrace/oneagent"
 
 RUN  apt-get update \
-  && apt-get install -y wget \
-  && apt-get install -y openssh-client \
+  && apt-get install -y wget openssh-client unzip \
   && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p "$DT_HOME" && \
