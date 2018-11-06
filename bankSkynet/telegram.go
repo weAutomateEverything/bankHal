@@ -31,6 +31,10 @@ func (s *rebuildNode) CommandIdentifier() string {
 	return "RebuildNode"
 }
 
+func (*rebuildNode) Show(uint32) bool {
+	return false
+}
+
 func (s *rebuildNode) CommandDescription() string {
 	return "Rebuilds a node"
 }
@@ -81,6 +85,10 @@ func (s *rebuildChefNode) CommandIdentifier() string {
 func (s *rebuildChefNode) CommandDescription() string {
 	return "Rebuilds a node based on a chef search"
 
+}
+
+func (*rebuildChefNode) Show(uint32) bool {
+	return false
 }
 
 func (s *rebuildChefNode) Execute(ctx context.Context, update tgbotapi.Update) {
