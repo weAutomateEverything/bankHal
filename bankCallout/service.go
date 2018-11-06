@@ -13,12 +13,6 @@ import (
 	"time"
 )
 
-type bankCallout struct {
-	store         Store
-	telegram      telegram.Service
-	telegramStore telegram.Store
-}
-
 type Service interface {
 	setGroup(ctx context.Context, chat uint32, group string) (name string, number string, err error)
 	getGroup(ctx context.Context, chat uint32) (string, error)
@@ -31,6 +25,17 @@ func NewService(store Store, telegram telegram.Service, telegramStore telegram.S
 		telegramStore: telegramStore,
 	}
 
+}
+
+type bankCallout struct {
+	store         Store
+	telegram      telegram.Service
+	telegramStore telegram.Store
+}
+
+func (s bankCallout) Configured(chat uint32) bool {
+	_, err := s.store.getCalloutGroup(chat)
+	return err != nil
 }
 
 func (s bankCallout) GetFirstCallDetails(ctx context.Context, chat uint32) (name string, number string, err error) {

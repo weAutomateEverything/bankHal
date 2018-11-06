@@ -33,6 +33,10 @@ func (*register) CommandIdentifier() string {
 	return "Register"
 }
 
+func (s *register) Show(uint32) bool {
+	return true
+}
+
 func (*register) CommandDescription() string {
 	return "Register yourself as a user. Add your employee number to the call"
 }
@@ -155,6 +159,10 @@ func (s token) RestrictToAuthorised() bool {
 
 func (token) CommandIdentifier() string {
 	return "Token"
+}
+
+func (token) Show(uint32) bool {
+	return true
 }
 
 func (token) CommandDescription() string {
