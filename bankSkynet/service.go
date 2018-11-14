@@ -165,7 +165,7 @@ func (s *service) createNode(ctx context.Context, chatid uint32, json string, sk
 
 	body, err := s.doHTTP(ctx, chatid, "POST", skynet+"/virtual_machines", json, skynet)
 	if err != nil {
-		s.calloutService.InvokeCallout(ctx, chatid, "skynet error creating node", fmt.Sprintf("Json: %s, Error: %s", json, err.Error()))
+		s.calloutService.InvokeCallout(ctx, chatid, "skynet error creating node", fmt.Sprintf("Json: %s, Error: %s", json, err.Error()), false)
 		return err
 	}
 	log.Println(body)
@@ -219,7 +219,7 @@ func (s *service) poll(ctx context.Context, chatid uint32, expectedState, nodeNa
 		}
 		if !ignoreFailed && strings.ToUpper(state) == "FAILED" {
 			s.alert.SendAlert(ctx, chatid, fmt.Sprintf("%s has entered a Failed State.", nodeName))
-			s.calloutService.InvokeCallout(ctx, chatid, fmt.Sprintf("Skynet Error rebuilding node %s", nodeName), "Node failed to build successfully")
+			s.calloutService.InvokeCallout(ctx, chatid, fmt.Sprintf("Skynet Error rebuilding node %s", nodeName), "Node failed to build successfully", false)
 			return fmt.Errorf("%s has entered a Failed State", nodeName)
 		}
 		i++
@@ -228,7 +228,7 @@ func (s *service) poll(ctx context.Context, chatid uint32, expectedState, nodeNa
 		}
 		time.Sleep(time.Second)
 	}
-	s.calloutService.InvokeCallout(ctx, chatid, fmt.Sprintf("Timed out waiting for node %s to enter state %s", nodeName, expectedState), "")
+	s.calloutService.InvokeCallout(ctx, chatid, fmt.Sprintf("Timed out waiting for node %s to enter state %s", nodeName, expectedState), "", false)
 	err := fmt.Errorf("timed out waiting for node %s to %s", nodeName, expectedState)
 	s.logError(ctx, chatid, err.Error())
 	return err
