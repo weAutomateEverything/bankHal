@@ -25,5 +25,6 @@ artifacts:
   - swagger.json
   - Dockerfile
   - cacert.pem
+  - custom.pem
 cache:
   paths:
