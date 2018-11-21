@@ -4,7 +4,6 @@ ARG DT_API_URL="https://vzb12882.live.dynatrace.com/api"
 ARG DT_ONEAGENT_OPTIONS="flavor=default&include=all"
 ARG DT_API_TOKEN="5WUwr7a7TtOG4hSe_BC70"
 ENV DT_HOME="/opt/dynatrace/oneagent"
-ENV PROXY="http://c1592023:trendweb@websenseproxy.standardbank.co.za:8080"
 
 RUN  apt-get update \
   && apt-get install -y wget openssh-client unzip \
