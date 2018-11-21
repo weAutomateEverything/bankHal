@@ -4,6 +4,7 @@ ARG DT_API_URL="https://vzb12882.live.dynatrace.com/api"
 ARG DT_ONEAGENT_OPTIONS="flavor=default&include=all"
 ARG DT_API_TOKEN="5WUwr7a7TtOG4hSe_BC70"
 ENV DT_HOME="/opt/dynatrace/oneagent"
+ENV PROXY="http://c1592023:trendweb@websenseproxy.standardbank.co.za:8080"
 
 RUN  apt-get update \
   && apt-get install -y wget openssh-client unzip \
@@ -33,12 +34,15 @@ RUN mkdir -p "$DT_HOME" && \
     wget -O "$DT_HOME/oneagent.zip" "$DT_API_URL/v1/deployment/installer/agent/unix/paas/latest?Api-Token=$DT_API_TOKEN&$DT_ONEAGENT_OPTIONS" && \
     unzip -d "$DT_HOME" "$DT_HOME/oneagent.zip" && \
     rm "$DT_HOME/oneagent.zip"
+    mkdir -p  /var/lib/dynatrace/oneagent/agent/customkeys
+
 
 WORKDIR /app
 # Now just add the binary
 COPY cacert.pem /
 COPY bankhal /app/
 COPY swagger.json /app/
+COPY custom.pem  /var/lib/dynatrace/oneagent/agent/customkeys/
 EXPOSE 8000 8080 9162
 
 ENTRYPOINT ["/opt/dynatrace/oneagent/dynatrace-agent64.sh"]
