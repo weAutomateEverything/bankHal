@@ -33,7 +33,7 @@ RUN wget -O /usr/local/share/ca-certificates/sbsapko.pem http://pko.standardbank
 RUN mkdir -p "$DT_HOME" && \
     wget -O "$DT_HOME/oneagent.zip" "$DT_API_URL/v1/deployment/installer/agent/unix/paas/latest?Api-Token=$DT_API_TOKEN&$DT_ONEAGENT_OPTIONS" && \
     unzip -d "$DT_HOME" "$DT_HOME/oneagent.zip" && \
-    rm "$DT_HOME/oneagent.zip"
+    rm "$DT_HOME/oneagent.zip" && \
     mkdir -p  /var/lib/dynatrace/oneagent/agent/customkeys
 
 
