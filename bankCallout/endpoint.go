@@ -1,38 +1,38 @@
 package bankCallout
 
 import (
-	"github.com/go-kit/kit/endpoint"
 	"context"
 	"github.com/go-kit/kit/auth/jwt"
+	"github.com/go-kit/kit/endpoint"
 	"github.com/weAutomateEverything/go2hal/telegram"
 )
 
-func makeGetCalloutGroupEndpoint(s Service) endpoint.Endpoint{
+func makeGetCalloutGroupEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		claim := ctx.Value(jwt.JWTClaimsContextKey).(*telegram.CustomClaims)
-		group,err  := s.getGroup(ctx,claim.RoomToken)
+		group, err := s.getGroup(ctx, claim.RoomToken)
 		if err != nil {
 			return nil, err
 		}
 		return getCalloutGroupResponse{
-			Group:group,
+			Group: group,
 		}, nil
 
 	}
 }
 
-func makeSetCalloutGroupEndpoint(s Service) endpoint.Endpoint{
+func makeSetCalloutGroupEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		claim := ctx.Value(jwt.JWTClaimsContextKey).(*telegram.CustomClaims)
 		req := request.(setCalloutRequest)
-		name, number, err := s.setGroup(ctx,claim.RoomToken,req.Group)
+		name, number, err := s.setGroup(ctx, claim.RoomToken, req.Group)
 		if err != nil {
 			return nil, err
 		}
 
 		return setCalloutResponse{
-			Name:name,
-			PhoneNumber:number,
+			Name:        name,
+			PhoneNumber: number,
 		}, nil
 	}
 }
@@ -42,10 +42,10 @@ type getCalloutGroupResponse struct {
 }
 
 type setCalloutRequest struct {
-	Group string
+	Group string `json:"group"`
 }
 
 type setCalloutResponse struct {
-	Name string
+	Name        string
 	PhoneNumber string
 }
