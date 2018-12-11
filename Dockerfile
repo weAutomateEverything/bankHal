@@ -1,8 +1,5 @@
 FROM ubuntu:14.04
 
-RUN useradd -r -u 1001 -g appuser appuser
-USER appuser
-
 ARG DT_API_URL="https://vzb12882.live.dynatrace.com/api"
 ARG DT_ONEAGENT_OPTIONS="flavor=default&include=all"
 ARG DT_API_TOKEN="5WUwr7a7TtOG4hSe_BC70"
