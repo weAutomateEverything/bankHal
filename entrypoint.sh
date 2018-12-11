@@ -12,4 +12,4 @@ if [ x"$USER_ID" != x"0" -a x"$USER_ID" != x"1001" ]; then
     LD_PRELOAD=/usr/local/lib64/libnss_wrapper.so
     export LD_PRELOAD
 fi
-/opt/dynatrace/oneagent/dynatrace-agent64.sh./en
+/opt/dynatrace/oneagent/dynatrace-agent64.sh
