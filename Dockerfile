@@ -79,6 +79,7 @@ COPY bankhal /app/
 COPY swagger.json /app/
 COPY custom.pem  /var/lib/dynatrace/oneagent/agent/customkeys/
 COPY entrypoint.sh /app/
+RUN chmod a+x /app/entrypoint.sh
 
 EXPOSE 8000 8080 9162
 
