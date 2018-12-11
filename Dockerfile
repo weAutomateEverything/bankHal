@@ -32,56 +32,14 @@ RUN wget -O /usr/local/share/ca-certificates/sbsapko.pem http://pko.standardbank
 RUN mkdir -p "$DT_HOME" && \
     wget -O "$DT_HOME/oneagent.zip" "$DT_API_URL/v1/deployment/installer/agent/unix/paas/latest?Api-Token=$DT_API_TOKEN&$DT_ONEAGENT_OPTIONS" && \
     unzip -d "$DT_HOME" "$DT_HOME/oneagent.zip" && \
-    rm "$DT_HOME/oneagent.zip" && \
-    mkdir -p  /var/lib/dynatrace/oneagent/agent/customkeys
-
-RUN apt-get update -qq && \
- DEBIAN_FRONTEND=noninteractive apt-get install -yq --no-install-recommends \
- build-essential \
- ca-certificates \
- cmake \
- curl \
- git \
- make \
- language-pack-en \
- libcurl4-openssl-dev \
- libffi-dev \
- libsqlite3-dev \
- libzmq3-dev \
- pandoc \
- python \
- python3 \
- python-dev \
- python3-dev \
- sqlite3 \
- texlive-fonts-recommended \
- texlive-latex-base \
- texlive-latex-extra \
- zlib1g-dev && \
- apt-get clean && \
- rm -rf /var/lib/apt/lists/*
-
-RUN curl -SL -o nss_wrapper.tar.gz https://ftp.samba.org/pub/cwrap/nss_wrapper-1.1.2.tar.gz && \
- mkdir nss_wrapper && \
- tar -xC nss_wrapper --strip-components=1 -f nss_wrapper.tar.gz && \
- rm nss_wrapper.tar.gz && \
- mkdir nss_wrapper/obj && \
- (cd nss_wrapper/obj && \
- cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DLIB_SUFFIX=64 .. && \
- make && \
- make install) && \
- rm -rf nss_wrapper
+    rm "$DT_HOME/oneagent.zip"
 
 WORKDIR /app
 # Now just add the binary
 COPY cacert.pem /
 COPY bankhal /app/
 COPY swagger.json /app/
-COPY custom.pem  /var/lib/dynatrace/oneagent/agent/customkeys/
-COPY entrypoint.sh /app/
-RUN chmod a+x /app/entrypoint.sh
-
 EXPOSE 8000 8080 9162
 
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["/opt/dynatrace/oneagent/dynatrace-agent64.sh"]
 CMD ["/app/bankhal" ]

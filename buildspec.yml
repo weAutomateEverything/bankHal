@@ -26,6 +26,5 @@ artifacts:
   - Dockerfile
   - cacert.pem
   - custom.pem
-  - entrypoint.sh
 cache:
   paths:
