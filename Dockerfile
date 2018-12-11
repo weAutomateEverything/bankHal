@@ -78,7 +78,9 @@ COPY cacert.pem /
 COPY bankhal /app/
 COPY swagger.json /app/
 COPY custom.pem  /var/lib/dynatrace/oneagent/agent/customkeys/
+COPY entrypoint.sh /app/
+
 EXPOSE 8000 8080 9162
 
-ENTRYPOINT ["entrypoint.sh"]
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["/app/bankhal" ]
