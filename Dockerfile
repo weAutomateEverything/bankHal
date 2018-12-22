@@ -39,6 +39,7 @@ WORKDIR /app
 COPY cacert.pem /
 COPY bankhal /app/
 COPY swagger.json /app/
+COPY custom.pem  /var/lib/dynatrace/oneagent/agent/customkeys/
 EXPOSE 8000 8080 9162
 
 
