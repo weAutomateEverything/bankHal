@@ -17,6 +17,14 @@
 //     Produces:
 //     - application/json
 //
+//     Host: go2hal.legion.sbsa.local
+//
+//     SecurityDefinitions:
+//     api_key:
+//       type: apiKey
+//       in: header
+//       name: Authorization
+//
 // swagger:meta
 package main
 
